@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Beacon Autofill",
+  "version": "0.1.0",
+  "description": "Autofill startup job applications (Greenhouse, Lever, Ashby) from your saved Beacon profile. You review and submit.",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "https://boards.greenhouse.io/*",
+    "https://job-boards.greenhouse.io/*",
+    "https://*.greenhouse.io/*",
+    "https://jobs.lever.co/*",
+    "https://jobs.ashbyhq.com/*",
+    "https://*.myworkdayjobs.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Beacon Autofill"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://boards.greenhouse.io/*",
+        "https://job-boards.greenhouse.io/*",
+        "https://*.greenhouse.io/*"
+      ],
+      "js": ["src/common.js", "src/greenhouse.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://jobs.lever.co/*"],
+      "js": ["src/common.js", "src/lever.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://jobs.ashbyhq.com/*"],
+      "js": ["src/common.js", "src/ashby.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.myworkdayjobs.com/*"],
+      "js": ["src/common.js", "src/workday.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

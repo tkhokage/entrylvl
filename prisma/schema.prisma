@@ -1,0 +1,55 @@
+// Beacon MVP schema (SQLite). Swap datasource to Postgres for phase 2 accounts.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Server-side cache of normalized job postings. Refreshed on a schedule so
+// the app is not hitting every source on every page load.
+model CachedJob {
+  id              String   @id // stable hash of source + apply url
+  title           String
+  company         String
+  location        String
+  workType        String // "In-office" | "Hybrid" | "Remote"
+  salaryMin       Int?
+  salaryMax       Int?
+  salaryCurrency  String?
+  salaryEstimated Boolean  @default(true)
+  description     String
+  applyUrl        String
+  source          String // "themuse" | "greenhouse" | "lever" | "ashby" | "remotive" | "adzuna" | "arbeitnow"
+  sourceCompany   String? // board slug used to fetch, if any
+  postedAt        DateTime?
+  entryLevel      Boolean  @default(true)
+  fetchedAt       DateTime @default(now())
+
+  @@index([company])
+  @@index([workType])
+  @@index([fetchedAt])
+}
+
+// Bookkeeping for the scheduled refresh so we know when the cache is stale.
+model RefreshLog {
+  id        Int      @id @default(autoincrement())
+  source    String
+  ok        Boolean
+  count     Int      @default(0)
+  message   String?
+  createdAt DateTime @default(now())
+}
+
+// --- Phase 2 stubs (not wired into the UI yet) ---
+// A saved profile so the browser extension and tracker can persist data.
+model Profile {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  data      String // JSON blob of the ResumeProfile
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

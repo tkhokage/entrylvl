@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        width: 320px;
+        margin: 0;
+        font: 14px system-ui, sans-serif;
+        color: #0f172a;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 14px;
+        border-bottom: 1px solid #e2e8f0;
+        font-weight: 700;
+      }
+      main {
+        padding: 14px;
+      }
+      textarea {
+        width: 100%;
+        height: 120px;
+        box-sizing: border-box;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 8px;
+        font: 12px ui-monospace, monospace;
+        resize: vertical;
+      }
+      button {
+        margin-top: 8px;
+        width: 100%;
+        padding: 9px;
+        border: 0;
+        border-radius: 8px;
+        background: #1c5cf5;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button.ghost {
+        background: #fff;
+        color: #334155;
+        border: 1px solid #cbd5e1;
+      }
+      .hint {
+        color: #64748b;
+        font-size: 12px;
+        margin: 6px 0 0;
+      }
+      .status {
+        margin-top: 8px;
+        font-size: 12px;
+      }
+      .ok {
+        color: #059669;
+      }
+    </style>
+  </head>
+  <body>
+    <header><span>🔦</span> Beacon Autofill</header>
+    <main>
+      <p class="hint">
+        Paste the profile JSON from the Beacon web app (or edit below), then save.
+        On a Greenhouse, Lever or Ashby application, click “Fill this form”.
+      </p>
+      <textarea id="profile" placeholder='{ "name": "...", "email": "..." }'></textarea>
+      <button id="save">Save profile</button>
+      <button id="fill" class="ghost">Fill this form</button>
+      <p class="status" id="status"></p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

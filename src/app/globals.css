@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+/* Thin, tidy scrollbars for the kit panel */
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-slate-300;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition;
+  }
+  .btn-primary {
+    @apply btn bg-beacon-600 text-white hover:bg-beacon-700 disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-100;
+  }
+  .chip {
+    @apply inline-flex items-center rounded-full bg-beacon-50 px-2.5 py-0.5 text-xs font-medium text-beacon-700;
+  }
+}
