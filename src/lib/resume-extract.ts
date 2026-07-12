@@ -8,6 +8,17 @@ import pdfParse from "pdf-parse/lib/pdf-parse.js";
 
 export type ResumeFileKind = "pdf" | "txt";
 
+/**
+ * Thrown when a PDF can't be read (corrupt, encrypted, or scanned/image-only).
+ * The API route maps this to a friendly 422 instead of a generic 500.
+ */
+export class UnreadablePdfError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "UnreadablePdfError";
+  }
+}
+
 export function detectKind(filename: string, mime: string): ResumeFileKind | null {
   const name = filename.toLowerCase();
   if (mime === "application/pdf" || name.endsWith(".pdf")) return "pdf";
@@ -22,6 +33,14 @@ export async function extractText(
   if (kind === "txt") {
     return buf.toString("utf8");
   }
-  const data = await pdfParse(buf);
-  return (data.text || "").trim();
+  try {
+    const data = await pdfParse(buf);
+    return (data.text || "").trim();
+  } catch (err) {
+    // pdf-parse/pdf.js throws on malformed, encrypted, or otherwise unreadable
+    // PDFs. Surface a typed error so the caller can guide the user rather than
+    // returning an opaque 500.
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new UnreadablePdfError(detail);
+  }
 }

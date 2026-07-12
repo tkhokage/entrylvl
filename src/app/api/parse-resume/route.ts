@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { detectKind, extractText } from "@/lib/resume-extract";
+import {
+  detectKind,
+  extractText,
+  UnreadablePdfError,
+} from "@/lib/resume-extract";
 import { parseResume } from "@/lib/resume-parse";
 
 export const runtime = "nodejs";
@@ -32,7 +36,21 @@ export async function POST(req: NextRequest) {
     }
 
     const buf = Buffer.from(await file.arrayBuffer());
-    const text = await extractText(buf, kind);
+    let text: string;
+    try {
+      text = await extractText(buf, kind);
+    } catch (err) {
+      if (err instanceof UnreadablePdfError) {
+        return NextResponse.json(
+          {
+            error:
+              "We couldn't read this PDF — it may be scanned/image-only, password-protected, or corrupted. Try exporting a text-based PDF, or upload your resume as a .txt file.",
+          },
+          { status: 422 }
+        );
+      }
+      throw err;
+    }
     if (!text || text.replace(/\s/g, "").length < 40) {
       return NextResponse.json(
         {
