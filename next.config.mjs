@@ -1,9 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // pdf-parse is a CommonJS lib that must stay external to the server bundle.
+  // three.js ecosystem ships untranspiled ESM; let Next compile it.
+  transpilePackages: ["three", "@react-three/fiber", "@react-three/drei"],
+  // pdf-parse (and mammoth) are CommonJS libs that stay external to the bundle.
   experimental: {
-    serverComponentsExternalPackages: ["pdf-parse"],
+    serverComponentsExternalPackages: ["pdf-parse", "mammoth"],
   },
 };
 

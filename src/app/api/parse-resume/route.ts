@@ -13,11 +13,38 @@ const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
 
 export async function POST(req: NextRequest) {
   try {
+    const contentType = req.headers.get("content-type") || "";
+
+    // Path 1: pasted text or LinkedIn profile text (JSON body).
+    if (contentType.includes("application/json")) {
+      const body = (await req.json()) as { text?: string };
+      const text = (body.text || "").trim();
+      if (text.replace(/\s/g, "").length < 40) {
+        return NextResponse.json(
+          {
+            error:
+              "That doesn't look like enough text to work with. Paste your full resume or LinkedIn profile.",
+          },
+          { status: 422 }
+        );
+      }
+      const profile = await parseResume(text);
+      return NextResponse.json({ profile });
+    }
+
+    // Path 2: file upload (PDF / DOCX / TXT), or a `text` form field.
     const form = await req.formData();
+
+    const pasted = form.get("text");
+    if (typeof pasted === "string" && pasted.trim().replace(/\s/g, "").length >= 40) {
+      const profile = await parseResume(pasted.trim());
+      return NextResponse.json({ profile });
+    }
+
     const file = form.get("resume");
     if (!(file instanceof File)) {
       return NextResponse.json(
-        { error: "No resume file provided." },
+        { error: "No resume provided. Upload a file or paste your resume text." },
         { status: 400 }
       );
     }
@@ -30,7 +57,10 @@ export async function POST(req: NextRequest) {
     const kind = detectKind(file.name, file.type);
     if (!kind) {
       return NextResponse.json(
-        { error: "Unsupported file type. Upload a PDF or .txt resume." },
+        {
+          error:
+            "Unsupported file type. Upload a PDF, Word (.docx), or .txt resume — or paste the text.",
+        },
         { status: 415 }
       );
     }
@@ -44,7 +74,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             error:
-              "We couldn't read this PDF — it may be scanned/image-only, password-protected, or corrupted. Try exporting a text-based PDF, or upload your resume as a .txt file.",
+              kind === "docx"
+                ? "We couldn't read this Word file. Try re-saving it, exporting a PDF, or pasting the text."
+                : "We couldn't read this PDF — it may be scanned/image-only, password-protected, or corrupted. Try a text-based PDF, a Word file, or paste the text.",
           },
           { status: 422 }
         );
@@ -55,7 +87,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "Could not read text from this file. If it's a scanned/image PDF, try a text-based PDF or paste your resume as .txt.",
+            "Could not read enough text from this file. If it's a scanned/image PDF, try a text-based export or paste your resume text.",
         },
         { status: 422 }
       );

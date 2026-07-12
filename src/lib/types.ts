@@ -74,6 +74,8 @@ export interface ApplicationKit {
   fields: { label: string; value: string }[];
   coverNote: string;
   screeningAnswers: { question: string; answer: string }[];
+  /** Requirements checklist: what the resume already covers vs. gaps. */
+  requirements: { label: string; met: boolean }[];
   applyUrl: string;
   generatedWith: "claude" | "heuristic";
 }

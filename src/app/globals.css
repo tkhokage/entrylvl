@@ -8,28 +8,49 @@
 
 html,
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-cream text-charcoal antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
-/* Thin, tidy scrollbars for the kit panel */
+/* Quiet scrollbars */
 .scroll-thin::-webkit-scrollbar {
   width: 8px;
 }
 .scroll-thin::-webkit-scrollbar-thumb {
-  @apply rounded-full bg-slate-300;
+  @apply rounded-full bg-beige;
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-[15px] font-semibold transition duration-300 ease-physical;
   }
+  /* Amber primary — the one place strong color appears. */
   .btn-primary {
-    @apply btn bg-beacon-600 text-white hover:bg-beacon-700 disabled:opacity-50;
+    @apply btn bg-amber text-cream shadow-[0_6px_20px_rgba(201,148,80,0.35)] hover:bg-amber-deep active:scale-[0.98] disabled:opacity-50 disabled:shadow-none;
   }
+  /* Charcoal-on-transparent ghost. */
   .btn-ghost {
-    @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-100;
+    @apply btn border border-beige bg-transparent text-charcoal hover:bg-sand active:scale-[0.98];
+  }
+  .card {
+    @apply rounded-2xl border border-beige bg-sand shadow-card;
   }
   .chip {
-    @apply inline-flex items-center rounded-full bg-beacon-50 px-2.5 py-0.5 text-xs font-medium text-beacon-700;
+    @apply inline-flex items-center rounded-full border border-beige/70 bg-cream px-3 py-1 text-[13px] font-medium text-taupe;
+  }
+  .chip-amber {
+    @apply inline-flex items-center rounded-full bg-amber/[0.12] px-3 py-1 text-[13px] font-medium text-amber-deep;
+  }
+}
+
+/* Honor reduced-motion: still the hero, calm the transitions. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

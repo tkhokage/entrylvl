@@ -1,5 +1,47 @@
 import { claudeText, extractJson, hasClaude } from "./anthropic";
 import type { ApplicationKit, Job, ResumeProfile } from "./types";
+import { extractSkills, prettySkill, skillPresent } from "./skills";
+
+/**
+ * Requirements checklist for the role-detail sheet: the concrete skills the
+ * posting mentions, each marked met (the resume covers it) or a gap. Grounded
+ * in the real posting + resume, no LLM needed.
+ */
+function buildRequirements(
+  job: Job,
+  profile: ResumeProfile
+): { label: string; met: boolean }[] {
+  const profileHay = [
+    profile.topSkills.join(" "),
+    profile.summary,
+    profile.targetRoles.join(" "),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  const jobSkills = extractSkills(job.description, 10);
+  const reqs = jobSkills.map((s) => ({
+    label: prettySkill(s),
+    met: skillPresent(profileHay, s),
+  }));
+
+  // Always include an experience-level line, grounded in the profile.
+  reqs.unshift({
+    label: "Entry-level (0–2 years) experience",
+    met: profile.yearsOfExperience <= 2,
+  });
+
+  // De-dupe by label and cap the list.
+  const seen = new Set<string>();
+  return reqs
+    .filter((r) => {
+      const k = r.label.toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    })
+    .slice(0, 8);
+}
 
 const SCREENING_QUESTIONS = [
   "Why are you interested in this role?",
@@ -42,6 +84,7 @@ export async function buildApplicationKit(
 ): Promise<ApplicationKit> {
   const fields = buildFields(profile);
   const applyUrl = job.applyUrl;
+  const requirements = buildRequirements(job, profile);
 
   if (hasClaude()) {
     try {
@@ -53,6 +96,7 @@ export async function buildApplicationKit(
         fields,
         coverNote,
         screeningAnswers,
+        requirements,
         applyUrl,
         generatedWith: "claude",
       };
@@ -65,6 +109,7 @@ export async function buildApplicationKit(
     fields,
     coverNote: templateCoverNote(job, profile),
     screeningAnswers: templateScreening(job, profile),
+    requirements,
     applyUrl,
     generatedWith: "heuristic",
   };

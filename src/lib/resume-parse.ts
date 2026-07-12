@@ -1,5 +1,6 @@
 import { claudeText, extractJson, hasClaude } from "./anthropic";
 import type { ResumeProfile } from "./types";
+import { SKILL_DICTIONARY, skillPresent } from "./skills";
 
 const SYSTEM = `You are a precise resume parser. You convert raw resume text into a clean structured JSON profile for an early-career (0-2 years experience) job seeker. Return ONLY JSON, no prose.`;
 
@@ -93,19 +94,6 @@ function dedupe(arr: string[]): string[] {
 
 // --- Heuristic fallback (no API key) -----------------------------------------
 
-const SKILL_DICTIONARY = [
-  "javascript", "typescript", "python", "java", "c++", "c#", "go", "golang",
-  "rust", "ruby", "php", "swift", "kotlin", "scala", "sql", "html", "css",
-  "react", "next.js", "vue", "angular", "svelte", "node.js", "express",
-  "django", "flask", "fastapi", "spring", "rails", ".net",
-  "postgres", "postgresql", "mysql", "mongodb", "redis", "graphql",
-  "aws", "gcp", "azure", "docker", "kubernetes", "terraform", "git",
-  "figma", "tableau", "power bi", "excel", "pandas", "numpy", "pytorch",
-  "tensorflow", "scikit-learn", "r", "matlab", "jira", "agile", "scrum",
-  "product management", "ux", "ui", "data analysis", "machine learning",
-  "security", "grc", "compliance", "penetration testing", "siem",
-];
-
 const ROLE_KEYWORDS: { match: string[]; roles: string[] }[] = [
   { match: ["react", "javascript", "typescript", "css", "frontend", "html"], roles: ["Junior Frontend Engineer", "Junior Software Engineer"] },
   { match: ["node", "python", "java", "go", "backend", "api"], roles: ["Junior Backend Engineer", "Associate Software Engineer"] },
@@ -115,14 +103,6 @@ const ROLE_KEYWORDS: { match: string[]; roles: string[] }[] = [
   { match: ["product management", "roadmap", "stakeholder"], roles: ["Associate Product Manager"] },
   { match: ["security", "grc", "compliance", "siem", "penetration"], roles: ["Security Analyst", "Junior GRC Analyst", "SOC Analyst"] },
 ];
-
-/** Whole-token skill match so "java" doesn't fire on "javascript", etc. */
-function skillPresent(haystackLower: string, skill: string): boolean {
-  const esc = skill.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`(^|[^a-z0-9+#.])${esc}([^a-z0-9+#.]|$)`, "i").test(
-    haystackLower
-  );
-}
 
 function heuristicParse(text: string): Partial<ResumeProfile> {
   const lower = text.toLowerCase();

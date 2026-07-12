@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+// Self-hosted variable fonts (installed via npm, no build-time network fetch).
+import "@fontsource-variable/inter";
+import "@fontsource-variable/inter-tight";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Beacon — early-career startup jobs, matched to your resume",
+  title: "Beacon — your resume knows where you belong",
   description:
-    "Upload your resume once. Beacon pulls live entry-level startup openings, ranks them against your profile, and prepares each application for you.",
+    "Import your resume once. Beacon lights up the entry-level startup roles that fit you, with a match score and the reason each one fits.",
 };
 
 export default function RootLayout({
@@ -14,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="font-sans">{children}</body>
     </html>
   );
 }
