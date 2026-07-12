@@ -5,6 +5,7 @@ import { fetchGreenhouse } from "./sources/greenhouse";
 import { fetchLever } from "./sources/lever";
 import { fetchAshby } from "./sources/ashby";
 import { fetchRemotive } from "./sources/remotive";
+import { isUSJob } from "./util";
 import { GREENHOUSE_SLUGS, LEVER_SLUGS, ASHBY_SLUGS } from "./seed";
 
 /** How long cached jobs are considered fresh. */
@@ -101,9 +102,17 @@ export async function ingestFromSources(): Promise<IngestResult> {
 
   await Promise.all(tasks);
 
+  // US-only filter (default on; set JOBS_US_ONLY=false to include global roles).
+  let jobs = all;
+  if (process.env.JOBS_US_ONLY !== "false") {
+    const before = jobs.length;
+    jobs = jobs.filter((j) => isUSJob(j.location, j.description, j.workType));
+    perSource["_filtered_non_us"] = before - jobs.length;
+  }
+
   // De-dupe by id (stable across sources/refreshes).
   const byId = new Map<string, Job>();
-  for (const j of all) if (!byId.has(j.id)) byId.set(j.id, j);
+  for (const j of jobs) if (!byId.has(j.id)) byId.set(j.id, j);
 
   return { jobs: Array.from(byId.values()), perSource };
 }

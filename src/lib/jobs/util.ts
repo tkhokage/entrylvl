@@ -69,6 +69,65 @@ export function isEntryLevel(title: string, text: string): boolean {
   return maxYears <= 2;
 }
 
+const US_STATE_CODES =
+  "AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY|DC";
+
+const US_POSITIVE = new RegExp(
+  [
+    `\\bunited states\\b`,
+    `\\bu\\.?s\\.?a\\.?\\b`,
+    `\\bus[- ]?(remote|based|only|eligible)\\b`,
+    `\\bremote[ ,-]*(us|usa|united states)\\b`,
+    `,\\s*(${US_STATE_CODES})\\b`,
+    `\\b(${US_STATE_CODES})\\s*,`,
+    // Common US cities that often appear without a state.
+    `\\b(new york|san francisco|los angeles|seattle|austin|boston|chicago|denver|atlanta|miami|dallas|houston|washington dc|san diego|san jose|portland|philadelphia|phoenix|nashville|salt lake city|brooklyn|palo alto|mountain view|santa monica|remote[ -]?(?:usa?))\\b`,
+  ].join("|"),
+  "i"
+);
+
+const NON_US = new RegExp(
+  [
+    // Countries
+    `\\b(canada|united kingdom|england|scotland|wales|ireland|germany|france|spain|italy|netherlands|poland|sweden|norway|denmark|finland|portugal|switzerland|austria|belgium|czech|slovakia|romania|bulgaria|ukraine|india|china|japan|south korea|singapore|australia|new zealand|brazil|mexico|argentina|colombia|chile|peru|israel|united arab emirates|u\\.a\\.e|nigeria|kenya|ghana|south africa|philippines|indonesia|vietnam|thailand|malaysia|pakistan|bangladesh|sri lanka|egypt|morocco|turkey|greece|hungary|croatia|serbia|estonia|lithuania|latvia|iceland|luxembourg)\\b`,
+    // Regions
+    `\\b(emea|apac|latam|latin america|europe|european|asia|asia[- ]pacific|africa|oceania|middle east|eu[- ]?remote|nordics|benelux)\\b`,
+    // Non-US cities
+    `\\b(london|manchester|edinburgh|dublin|berlin|munich|hamburg|frankfurt|paris|lyon|madrid|barcelona|lisbon|porto|amsterdam|rotterdam|brussels|zurich|geneva|vienna|prague|warsaw|krakow|bucharest|budapest|stockholm|copenhagen|oslo|helsinki|milan|rome|athens|toronto|vancouver|montreal|ottawa|calgary|bangalore|bengaluru|mumbai|new delhi|hyderabad|pune|chennai|gurgaon|noida|tokyo|osaka|seoul|shanghai|beijing|shenzhen|sydney|melbourne|brisbane|auckland|sao paulo|rio de janeiro|mexico city|bogota|buenos aires|santiago|tel aviv|dubai|abu dhabi|lagos|nairobi|cape town|johannesburg|manila|jakarta|bangkok|kuala lumpur|ho chi minh|hanoi|istanbul)\\b`,
+  ].join("|"),
+  "i"
+);
+
+/**
+ * Whether a job should be kept for a US-only hub. Keeps roles that are clearly
+ * US-based (or US-eligible remote), drops clearly international ones, and leans
+ * inclusive on genuinely ambiguous cases (generic "Remote", unknown location)
+ * since our startup boards are US-heavy. `location` is trusted most; `text` is
+ * a light fallback.
+ */
+export function isUSJob(
+  location: string,
+  text: string,
+  workType: WorkType
+): boolean {
+  const loc = location || "";
+  const usLoc = US_POSITIVE.test(loc);
+  const nonUsLoc = NON_US.test(loc);
+
+  // Clear signals from the (short, reliable) location string win first.
+  if (usLoc) return true;
+  if (nonUsLoc) return false;
+
+  // Location was ambiguous/unknown ("Remote", "See posting", ""). Use the body
+  // only to rule OUT a clearly non-US posting; never to rule one in.
+  const snippet = (text || "").slice(0, 600);
+  if (NON_US.test(snippet) && !US_POSITIVE.test(snippet)) return false;
+
+  // Remaining ambiguity: keep remote/unknown (likely US-eligible on our
+  // US-startup boards) rather than silently dropping real matches.
+  return workType === "Remote" || loc.trim() === "" || /see posting/i.test(loc);
+}
+
 /** Classify work type from location + text signals. */
 export function detectWorkType(location: string, text: string): WorkType {
   const hay = `${location}\n${text}`.toLowerCase();

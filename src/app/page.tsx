@@ -209,7 +209,7 @@ export default function Home() {
           ) : (
             <>
               <p className="text-sm text-slate-500">
-                Showing {visibleJobs.length} entry-level match
+                Showing {visibleJobs.length} US entry-level match
                 {visibleJobs.length === 1 ? "" : "es"} from live startup boards.
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -238,7 +238,7 @@ export default function Home() {
         <ol className="list-decimal space-y-1 pl-5">
           <li>Upload your resume — it's parsed into a structured profile.</li>
           <li>
-            Beacon pulls live entry-level openings from The Muse and startup
+            Beacon pulls live US entry-level openings from The Muse and startup
             Greenhouse, Lever &amp; Ashby boards.
           </li>
           <li>Each job is scored against your profile and ranked.</li>
