@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { RankedJob, ResumeProfile, WorkType } from "@/lib/types";
-import { BeaconHero } from "@/components/hero/BeaconHero";
+import { GlobeHero } from "@/components/hero/GlobeHero";
 import { ImportPanel } from "@/components/ImportPanel";
 import { ReadingState } from "@/components/ReadingState";
 import { ProfileSummary } from "@/components/ProfileSummary";
+import { SearchBar } from "@/components/SearchBar";
 import { RoleCard } from "@/components/RoleCard";
 import { RoleSheet } from "@/components/RoleSheet";
 import { useTracker } from "@/lib/useTracker";
@@ -30,9 +31,13 @@ export default function Home() {
   const [showSaved, setShowSaved] = useState(false);
   const [selected, setSelected] = useState<RankedJob | null>(null);
 
+  // Search
+  const [query, setQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<RankedJob[] | null>(null);
+  const [searching, setSearching] = useState(false);
+
   const tracker = useTracker();
 
-  // Restore a session profile (skip the reading animation on return).
   useEffect(() => {
     const stored = sessionStorage.getItem(PROFILE_KEY);
     if (stored) {
@@ -71,7 +76,7 @@ export default function Home() {
       const p = data.profile as ResumeProfile;
       setProfile(p);
       sessionStorage.setItem(PROFILE_KEY, JSON.stringify(p));
-      void loadJobs(p); // warm jobs while the reading animation plays
+      void loadJobs(p);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setView("import");
@@ -101,6 +106,29 @@ export default function Home() {
     }
   }
 
+  async function runSearch(q: string) {
+    setQuery(q);
+    if (!q) {
+      setSearchResults(null);
+      return;
+    }
+    if (!profile) return;
+    setSearching(true);
+    try {
+      const res = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile, query: q }),
+      });
+      const data = await res.json();
+      setSearchResults(data.jobs || []);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }
+
   function reset() {
     sessionStorage.removeItem(PROFILE_KEY);
     setProfile(null);
@@ -109,15 +137,16 @@ export default function Home() {
     setError(null);
     setNote(null);
     setShowSaved(false);
+    setQuery("");
+    setSearchResults(null);
     setView("landing");
   }
 
-  const baseList = showSaved ? tracker.saved : jobs;
+  const searchActive = searchResults !== null && query.length > 0;
+  const baseList = showSaved ? tracker.saved : searchActive ? searchResults! : jobs;
+
   const visibleJobs = useMemo(() => {
-    let list =
-      workFilter === "All"
-        ? baseList
-        : baseList.filter((j) => j.workType === workFilter);
+    let list = workFilter === "All" ? baseList : baseList.filter((j) => j.workType === workFilter);
     list = [...list];
     if (sort === "fit") list.sort((a, b) => b.fitScore - a.fitScore);
     else {
@@ -136,20 +165,13 @@ export default function Home() {
 
   return (
     <main className="min-h-screen">
-      {/* Header */}
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
-        <button
-          onClick={reset}
-          className="flex items-center gap-2 font-display text-lg font-semibold tracking-tight text-charcoal"
-        >
+      <header className="relative z-20 mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
+        <button onClick={reset} className="flex items-center gap-2 font-display text-lg font-semibold tracking-tight text-charcoal">
           <span className="grid h-7 w-7 place-items-center rounded-full bg-amber/20 text-[15px]">🔦</span>
           Beacon
         </button>
         {view === "hub" ? (
-          <button
-            onClick={() => setShowSaved((s) => !s)}
-            className={`btn-ghost text-[14px] ${showSaved ? "border-amber text-amber-deep" : ""}`}
-          >
+          <button onClick={() => setShowSaved((s) => !s)} className={`btn-ghost text-[14px] ${showSaved ? "border-amber text-amber-deep" : ""}`}>
             {showSaved ? "← All roles" : `Saved (${tracker.saved.length})`}
           </button>
         ) : (
@@ -157,9 +179,7 @@ export default function Home() {
         )}
       </header>
 
-      {view === "landing" && (
-        <Landing onStart={() => setView("import")} />
-      )}
+      {view === "landing" && <Landing onStart={() => setView("import")} />}
 
       {view === "import" && (
         <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
@@ -168,20 +188,14 @@ export default function Home() {
             onText={(text) => runImport({ text })}
             busy={parsing}
             error={error}
-            onBack={() => {
-              setError(null);
-              setView("landing");
-            }}
+            onBack={() => { setError(null); setView("landing"); }}
           />
         </section>
       )}
 
       {view === "reading" && (
         <section className="mx-auto max-w-6xl px-5 sm:px-8">
-          <ReadingState
-            profile={profile}
-            onDone={() => setView("hub")}
-          />
+          <ReadingState profile={profile} onDone={() => setView("hub")} />
         </section>
       )}
 
@@ -189,7 +203,8 @@ export default function Home() {
         <section className="mx-auto max-w-3xl space-y-6 px-5 pb-24 sm:px-8">
           <ProfileSummary profile={profile} onReset={reset} />
 
-          {/* Controls */}
+          <SearchBar onSearch={runSearch} titles={jobs.map((j) => j.title)} busy={searching} />
+
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-1.5">
               {(["All", "Remote", "Hybrid", "In-office"] as WorkFilter[]).map((t) => (
@@ -197,9 +212,7 @@ export default function Home() {
                   key={t}
                   onClick={() => setWorkFilter(t)}
                   className={`rounded-full px-3.5 py-1.5 text-[14px] font-medium transition duration-300 ease-physical ${
-                    workFilter === t
-                      ? "bg-charcoal text-cream"
-                      : "border border-beige bg-transparent text-taupe hover:bg-sand"
+                    workFilter === t ? "bg-charcoal text-cream" : "border border-beige bg-transparent text-taupe hover:bg-sand"
                   }`}
                 >
                   {t}
@@ -208,46 +221,33 @@ export default function Home() {
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value as SortMode)}
-                className="rounded-xl border border-beige bg-transparent px-3 py-1.5 text-[14px] text-charcoal outline-none"
-              >
+              <select value={sort} onChange={(e) => setSort(e.target.value as SortMode)} className="rounded-xl border border-beige bg-transparent px-3 py-1.5 text-[14px] text-charcoal outline-none">
                 <option value="fit">Best match</option>
                 <option value="salary">Salary</option>
               </select>
-              {!showSaved && (
-                <button
-                  className="btn-ghost text-[13px]"
-                  onClick={() => profile && loadJobs(profile, true)}
-                  disabled={loadingJobs}
-                >
+              {!showSaved && !searchActive && (
+                <button className="btn-ghost text-[13px]" onClick={() => profile && loadJobs(profile, true)} disabled={loadingJobs}>
                   {loadingJobs ? "Refreshing…" : "Refresh"}
                 </button>
               )}
             </div>
           </div>
 
-          {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-[14px] text-red-700">{error}</div>
-          )}
-          {note && (
-            <div className="rounded-xl border border-amber/30 bg-amber/[0.07] p-3.5 text-[14px] text-charcoal/80">{note}</div>
-          )}
+          {error && <div className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-[14px] text-red-700">{error}</div>}
+          {note && <div className="rounded-xl border border-amber/30 bg-amber/[0.07] p-3.5 text-[14px] text-charcoal/80">{note}</div>}
 
-          {/* Feed */}
           {loadingJobs && jobs.length === 0 ? (
-            <div className="space-y-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-44 animate-pulse rounded-2xl bg-sand" />
-              ))}
-            </div>
+            <div className="space-y-4">{Array.from({ length: 4 }).map((_, i) => (<div key={i} className="h-44 animate-pulse rounded-2xl bg-sand" />))}</div>
           ) : visibleJobs.length === 0 ? (
-            <EmptyState saved={showSaved} onRefresh={() => profile && loadJobs(profile, true)} />
+            <EmptyState mode={showSaved ? "saved" : searchActive ? "search" : "matches"} query={query} onRefresh={() => profile && loadJobs(profile, true)} />
           ) : (
             <>
               <p className="text-[14px] text-taupe">
-                {showSaved ? "Your saved roles" : `Showing ${visibleJobs.length} US entry-level match${visibleJobs.length === 1 ? "" : "es"}`}
+                {showSaved
+                  ? "Your saved roles"
+                  : searchActive
+                    ? `${visibleJobs.length} role${visibleJobs.length === 1 ? "" : "s"} matching “${query}”, ranked by your fit`
+                    : `Showing ${visibleJobs.length} US entry-level match${visibleJobs.length === 1 ? "" : "es"}`}
               </p>
               <div className="space-y-4">
                 {visibleJobs.map((job) => (
@@ -272,7 +272,9 @@ export default function Home() {
         <RoleSheet
           job={selected}
           profile={profile}
+          saved={tracker.isSaved(selected.id)}
           applied={tracker.isApplied(selected.id)}
+          onToggleSave={tracker.toggleSaved}
           onMarkApplied={tracker.markApplied}
           onClose={() => setSelected(null)}
         />
@@ -282,33 +284,51 @@ export default function Home() {
 }
 
 function Landing({ onStart }: { onStart: () => void }) {
+  const heroRef = useRef<HTMLDivElement>(null);
+
+  // Scroll-linked fade: map scroll progress (0→1 over the first viewport) to
+  // opacity, scale, and upward drift. Transforms + opacity only for 60fps.
+  useEffect(() => {
+    const el = heroRef.current;
+    if (!el) return;
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const p = Math.min(1, Math.max(0, window.scrollY / (window.innerHeight * 0.8)));
+        el.style.opacity = String(1 - p);
+        el.style.transform = `translateY(${-40 * p}px) scale(${1 - 0.15 * p})`;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
   return (
     <>
-      <section className="mx-auto grid max-w-6xl items-center gap-6 px-5 py-8 sm:px-8 lg:grid-cols-2 lg:gap-10 lg:py-16">
-        <div className="order-2 text-center lg:order-1 lg:text-left">
-          <h1 className="font-display text-4xl font-semibold leading-[1.1] tracking-tight text-charcoal sm:text-5xl">
-            Your resume knows where you belong.
+      <section className="relative flex min-h-[88vh] flex-col items-center justify-center px-5 text-center sm:px-8">
+        <div ref={heroRef} className="flex flex-col items-center will-change-transform">
+          <h1 className="font-display text-4xl font-semibold leading-[1.08] tracking-tight text-charcoal sm:text-6xl">
+            The right job is out there.
           </h1>
-          <p className="mx-auto mt-5 max-w-md text-[17px] leading-relaxed text-taupe lg:mx-0">
-            Import it once. Beacon lights up the entry-level startup roles that
-            fit — each with a match score and the reason it fits you.
+          <p className="mx-auto mt-4 max-w-md text-[17px] leading-relaxed text-taupe">
+            Import your resume and Beacon points you to it — ranked entry-level
+            startup roles, with the reason each one fits.
           </p>
-          <div className="mt-8 flex justify-center lg:justify-start">
-            <button onClick={onStart} className="btn-primary px-7 py-3 text-base">
-              Import your resume →
-            </button>
+          <div className="relative mt-2 w-full max-w-2xl">
+            <GlobeHero />
           </div>
-          <p className="mt-4 text-[13px] text-taupe">
-            PDF or Word · US roles · nothing stored beyond your session
-          </p>
-        </div>
-        <div className="order-1 lg:order-2">
-          <BeaconHero />
+          <button onClick={onStart} className="btn-primary -mt-2 px-7 py-3 text-base">
+            Import your resume →
+          </button>
+          <p className="mt-4 text-[13px] text-taupe">PDF or Word · US roles · nothing stored beyond your session</p>
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="mx-auto max-w-5xl px-5 pb-24 pt-6 sm:px-8">
+      <section className="mx-auto max-w-5xl px-5 pb-24 pt-4 sm:px-8">
         <div className="grid gap-5 sm:grid-cols-3">
           {[
             { n: "01", t: "Import once", d: "Drop your resume in. Beacon reads it into a structured profile — skills, experience, target roles." },
@@ -327,26 +347,25 @@ function Landing({ onStart }: { onStart: () => void }) {
   );
 }
 
-function EmptyState({ saved, onRefresh }: { saved: boolean; onRefresh: () => void }) {
+function EmptyState({ mode, query, onRefresh }: { mode: "saved" | "search" | "matches"; query: string; onRefresh: () => void }) {
   return (
     <div className="card flex flex-col items-center gap-3 px-8 py-14 text-center">
       <div className="relative mb-2 h-16 w-16">
-        <div className="absolute inset-0 animate-breathe rounded-full bg-amber/30 blur-xl motion-reduce:animate-none" />
-        <div className="absolute left-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-soft" />
+        <div className="absolute inset-0 rounded-full border border-amber/40" />
+        <div className="absolute inset-2 rounded-full border border-amber/25" />
+        <div className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-soft" />
       </div>
       <p className="font-display text-lg font-semibold text-charcoal">
-        {saved ? "No saved roles yet" : "No matching roles right now"}
+        {mode === "saved" ? "No saved roles yet" : mode === "search" ? `No roles matching “${query}”` : "No matching roles right now"}
       </p>
       <p className="max-w-sm text-[15px] text-taupe">
-        {saved
+        {mode === "saved"
           ? "Tap Save on any role and it'll wait for you here."
-          : "Try clearing the work-type filter, or refresh to pull the latest live roles."}
+          : mode === "search"
+            ? "Try a broader term, or clear the search to return to your matches."
+            : "Try clearing the work-type filter, or refresh to pull the latest live roles."}
       </p>
-      {!saved && (
-        <button onClick={onRefresh} className="btn-ghost mt-1">
-          Refresh roles
-        </button>
-      )}
+      {mode === "matches" && <button onClick={onRefresh} className="btn-ghost mt-1">Refresh roles</button>}
     </div>
   );
 }
