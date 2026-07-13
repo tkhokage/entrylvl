@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { RankedJob, ResumeProfile, WorkType } from "@/lib/types";
-import { MainframeHero } from "@/components/hero/MainframeHero";
+import { LiquidGlassHero } from "@/components/hero/LiquidGlassHero";
 import { ImportPanel } from "@/components/ImportPanel";
 import { ReadingState } from "@/components/ReadingState";
 import { ProfileSummary } from "@/components/ProfileSummary";
@@ -181,7 +181,7 @@ export default function Home() {
         </header>
       )}
 
-      {view === "landing" && <MainframeHero onStart={() => setView("import")} />}
+      {view === "landing" && <LiquidGlassHero onStart={() => setView("import")} />}
 
       {view === "import" && (
         <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8">

@@ -18,14 +18,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Helvetica Now Display for the landing hero (Beacon UI keeps Inter). */}
+        {/* Geist for the landing hero (the Beacon app UI keeps Inter). */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
-          rel="stylesheet"
-          href="https://db.onlinewebfonts.com/c/5ac3fe7c6abd2f62067f266d89671492?family=HelveticaNowDisplay-Medium"
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
         />
         <link
           rel="stylesheet"
-          href="https://db.onlinewebfonts.com/c/1aa3377e489837a26d019bba501e779d?family=HelveticaNowDisplayW01-Rg"
+          href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap"
         />
       </head>
       <body className="font-sans">{children}</body>
