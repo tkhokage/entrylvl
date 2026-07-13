@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { RankedJob, ResumeProfile, WorkType } from "@/lib/types";
-import { GlobeHero } from "@/components/hero/GlobeHero";
+import { MainframeHero } from "@/components/hero/MainframeHero";
 import { ImportPanel } from "@/components/ImportPanel";
 import { ReadingState } from "@/components/ReadingState";
 import { ProfileSummary } from "@/components/ProfileSummary";
@@ -165,21 +165,23 @@ export default function Home() {
 
   return (
     <main className="min-h-screen">
-      <header className="relative z-20 mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
-        <button onClick={reset} className="flex items-center gap-2 font-display text-lg font-semibold tracking-tight text-charcoal">
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-amber/20 text-[15px]">🔦</span>
-          Beacon
-        </button>
-        {view === "hub" ? (
-          <button onClick={() => setShowSaved((s) => !s)} className={`btn-ghost text-[14px] ${showSaved ? "border-amber text-amber-deep" : ""}`}>
-            {showSaved ? "← All roles" : `Saved (${tracker.saved.length})`}
+      {view !== "landing" && (
+        <header className="relative z-20 mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
+          <button onClick={reset} className="flex items-center gap-2 font-display text-lg font-semibold tracking-tight text-charcoal">
+            <span className="grid h-7 w-7 place-items-center rounded-full bg-amber/20 text-[15px]">🔦</span>
+            Beacon
           </button>
-        ) : (
-          <span className="text-[13px] text-taupe">Accounts coming soon</span>
-        )}
-      </header>
+          {view === "hub" ? (
+            <button onClick={() => setShowSaved((s) => !s)} className={`btn-ghost text-[14px] ${showSaved ? "border-amber text-amber-deep" : ""}`}>
+              {showSaved ? "← All roles" : `Saved (${tracker.saved.length})`}
+            </button>
+          ) : (
+            <span className="text-[13px] text-taupe">Accounts coming soon</span>
+          )}
+        </header>
+      )}
 
-      {view === "landing" && <Landing onStart={() => setView("import")} />}
+      {view === "landing" && <MainframeHero onStart={() => setView("import")} />}
 
       {view === "import" && (
         <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
@@ -280,70 +282,6 @@ export default function Home() {
         />
       )}
     </main>
-  );
-}
-
-function Landing({ onStart }: { onStart: () => void }) {
-  const heroRef = useRef<HTMLDivElement>(null);
-
-  // Scroll-linked fade: map scroll progress (0→1 over the first viewport) to
-  // opacity, scale, and upward drift. Transforms + opacity only for 60fps.
-  useEffect(() => {
-    const el = heroRef.current;
-    if (!el) return;
-    let raf = 0;
-    const onScroll = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        const p = Math.min(1, Math.max(0, window.scrollY / (window.innerHeight * 0.8)));
-        el.style.opacity = String(1 - p);
-        el.style.transform = `translateY(${-40 * p}px) scale(${1 - 0.15 * p})`;
-      });
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      cancelAnimationFrame(raf);
-    };
-  }, []);
-
-  return (
-    <>
-      <section className="relative flex min-h-[88vh] flex-col items-center justify-center px-5 text-center sm:px-8">
-        <div ref={heroRef} className="flex flex-col items-center will-change-transform">
-          <h1 className="font-display text-4xl font-semibold leading-[1.08] tracking-tight text-charcoal sm:text-6xl">
-            The right job is out there.
-          </h1>
-          <p className="mx-auto mt-4 max-w-md text-[17px] leading-relaxed text-taupe">
-            Import your resume and Beacon points you to it — ranked entry-level
-            startup roles, with the reason each one fits.
-          </p>
-          <div className="relative mt-2 w-full max-w-2xl">
-            <GlobeHero />
-          </div>
-          <button onClick={onStart} className="btn-primary -mt-2 px-7 py-3 text-base">
-            Import your resume →
-          </button>
-          <p className="mt-4 text-[13px] text-taupe">PDF or Word · US roles · nothing stored beyond your session</p>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-5xl px-5 pb-24 pt-4 sm:px-8">
-        <div className="grid gap-5 sm:grid-cols-3">
-          {[
-            { n: "01", t: "Import once", d: "Drop your resume in. Beacon reads it into a structured profile — skills, experience, target roles." },
-            { n: "02", t: "See your matches", d: "Live US entry-level roles from real startup boards, ranked by fit with a reason for each." },
-            { n: "03", t: "Apply, prepared", d: "Each role opens a kit: ready-to-paste details, a tailored cover note, and the official apply link." },
-          ].map((s) => (
-            <div key={s.n} className="card p-6">
-              <div className="font-display text-[13px] font-semibold tracking-widest text-amber-deep">{s.n}</div>
-              <h3 className="mt-3 font-display text-lg font-semibold tracking-tight text-charcoal">{s.t}</h3>
-              <p className="mt-1.5 text-[15px] leading-relaxed text-taupe">{s.d}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-    </>
   );
 }
 
