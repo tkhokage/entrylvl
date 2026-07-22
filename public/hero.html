@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Beacon — Find the startup role that fits you</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      * {
+        font-family: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      .hero {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        background: #000;
+      }
+      .bg-video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          to top,
+          rgba(0, 0, 0, 0.6),
+          rgba(0, 0, 0, 0.1) 55%,
+          transparent
+        );
+      }
+
+      /* ---- Liquid glass ---- */
+      .liquid-glass {
+        background: rgba(255, 255, 255, 0.01);
+        background-blend-mode: luminosity;
+        -webkit-backdrop-filter: blur(4px);
+        backdrop-filter: blur(4px);
+        border: none;
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+        position: relative;
+        overflow: hidden;
+      }
+      .liquid-glass::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        padding: 1.4px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.45) 0%,
+          rgba(255, 255, 255, 0.15) 20%,
+          rgba(255, 255, 255, 0) 40%,
+          rgba(255, 255, 255, 0) 60%,
+          rgba(255, 255, 255, 0.15) 80%,
+          rgba(255, 255, 255, 0.45) 100%
+        );
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+      }
+
+      /* ---- Navbar ---- */
+      .nav {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px;
+      }
+      @media (min-width: 640px) {
+        .nav {
+          padding: 20px 32px;
+        }
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #fff;
+        font-weight: 500;
+        font-size: 16px;
+        background: none;
+        border: 0;
+        cursor: pointer;
+      }
+      .nav-pill {
+        display: none;
+        align-items: center;
+        gap: 4px;
+        border-radius: 12px;
+        padding: 8px;
+      }
+      .nav-pill button {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.7);
+        background: transparent;
+        border: 0;
+        cursor: pointer;
+        transition: color 0.2s, background 0.2s;
+      }
+      .nav-pill button:hover {
+        color: #fff;
+      }
+      .nav-pill button.active {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+      }
+      .cta-group {
+        display: none;
+        align-items: center;
+        gap: 12px;
+      }
+      .btn-glass {
+        color: #fff;
+        font-size: 14px;
+        font-weight: 500;
+        padding: 10px 16px;
+        border-radius: 999px;
+        border: 0;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .btn-glass:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .btn-white {
+        background: #fff;
+        color: #000;
+        font-size: 14px;
+        font-weight: 500;
+        padding: 10px 16px;
+        border-radius: 999px;
+        border: 0;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .btn-white:hover {
+        background: rgba(255, 255, 255, 0.9);
+      }
+      .menu-toggle {
+        color: #fff;
+        padding: 8px;
+        border-radius: 8px;
+        border: 0;
+        cursor: pointer;
+        display: inline-flex;
+      }
+      @media (min-width: 768px) {
+        .nav-pill,
+        .cta-group {
+          display: flex;
+        }
+        .menu-toggle {
+          display: none;
+        }
+      }
+
+      /* ---- Mobile menu ---- */
+      .mobile-menu {
+        position: absolute;
+        top: 72px;
+        left: 16px;
+        right: 16px;
+        z-index: 30;
+        border-radius: 16px;
+        padding: 16px;
+        display: none;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .mobile-menu.open {
+        display: flex;
+      }
+      @media (min-width: 768px) {
+        .mobile-menu {
+          display: none !important;
+        }
+      }
+      .mobile-menu > button {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        color: #fff;
+        background: transparent;
+        border: 0;
+        cursor: pointer;
+      }
+      .mobile-cta {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .mobile-cta button {
+        flex: 1;
+      }
+
+      /* ---- Orbit ---- */
+      .orbit-wrap {
+        position: absolute;
+        left: 50%;
+        top: 42%;
+        z-index: 10;
+        transform: translate(-50%, -50%) scale(0.62);
+      }
+      @media (min-width: 640px) {
+        .orbit-wrap {
+          transform: translate(-50%, -50%) scale(0.9);
+        }
+      }
+      @media (min-width: 1024px) {
+        .orbit-wrap {
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+      .orbit {
+        position: relative;
+        width: 520px;
+        height: 520px;
+        pointer-events: none;
+      }
+      .orb-center {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+      }
+      .orb-glow {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 224px;
+        height: 224px;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        filter: blur(48px);
+      }
+      .orb {
+        display: grid;
+        place-items: center;
+        width: 112px;
+        height: 112px;
+        border-radius: 50%;
+      }
+      .orb-core {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.7);
+        filter: blur(2px);
+      }
+      .orbit-title {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        white-space: nowrap;
+        font-size: 13px;
+        font-weight: 500;
+        color: #fff;
+        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
+        will-change: transform, opacity;
+      }
+      @media (min-width: 640px) {
+        .orbit-title {
+          font-size: 14px;
+        }
+      }
+
+      /* ---- Hero content ---- */
+      .hero-content {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        z-index: 20;
+        max-width: 640px;
+        padding: 0 24px 40px;
+      }
+      @media (min-width: 640px) {
+        .hero-content {
+          padding: 0 48px 64px;
+        }
+      }
+      .hero-content h1 {
+        margin: 0 0 16px;
+        color: #fff;
+        font-weight: 500;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+        font-size: 36px;
+      }
+      @media (min-width: 640px) {
+        .hero-content h1 {
+          font-size: 48px;
+        }
+      }
+      @media (min-width: 1024px) {
+        .hero-content h1 {
+          font-size: 60px;
+        }
+      }
+      .hero-content p {
+        margin: 0 0 28px;
+        max-width: 28rem;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .hero-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+      }
+      .hero-buttons .btn-white,
+      .hero-buttons .btn-glass {
+        padding: 12px 24px;
+        font-size: 14px;
+      }
+      @media (min-width: 640px) {
+        .hero-buttons .btn-white,
+        .hero-buttons .btn-glass {
+          padding: 12px 28px;
+          font-size: 16px;
+        }
+      }
+      .icon {
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hero">
+      <video
+        class="bg-video"
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260511_230229_7c9bc431-46cf-489a-948d-e8144d8eb5d4.mp4"
+        autoplay
+        muted
+        loop
+        playsinline
+      ></video>
+      <div class="scrim"></div>
+
+      <!-- Orbiting job titles -->
+      <div class="orbit-wrap">
+        <div class="orbit" id="orbit">
+          <div class="orb-center">
+            <div class="orb-glow"></div>
+            <div class="liquid-glass orb"><div class="orb-core"></div></div>
+          </div>
+          <!-- titles injected by JS -->
+        </div>
+      </div>
+
+      <!-- Navbar -->
+      <nav class="nav">
+        <button class="logo" type="button">
+          <svg class="icon" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+          </svg>
+          <span>Beacon</span>
+        </button>
+
+        <div class="liquid-glass nav-pill">
+          <button class="active" type="button">Home</button>
+          <button type="button">
+            Roles
+            <svg class="icon" width="13" height="13" viewBox="0 0 24 24" style="margin-top:1px" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
+          </button>
+          <button type="button">How it works</button>
+          <button type="button">For startups</button>
+        </div>
+
+        <div class="cta-group">
+          <button class="liquid-glass btn-glass" type="button">Log in</button>
+          <button class="btn-white" type="button">Import résumé</button>
+        </div>
+
+        <button class="liquid-glass menu-toggle" id="menuToggle" type="button" aria-label="Menu">
+          <svg class="icon" id="iconMenu" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+          <svg class="icon" id="iconClose" width="18" height="18" viewBox="0 0 24 24" style="display:none" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </nav>
+
+      <!-- Mobile menu -->
+      <div class="liquid-glass mobile-menu" id="mobileMenu">
+        <button type="button">Home</button>
+        <button type="button">Roles
+          <svg class="icon" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
+        </button>
+        <button type="button">How it works</button>
+        <button type="button">For startups</button>
+        <div class="mobile-cta">
+          <button class="liquid-glass btn-glass" type="button">Log in</button>
+          <button class="btn-white" type="button">Import résumé</button>
+        </div>
+      </div>
+
+      <!-- Hero content -->
+      <div class="hero-content">
+        <h1>Find the startup role that fits you.</h1>
+        <p>
+          Import your résumé and Beacon points you to entry-level startup roles
+          that actually match — ranked by fit, with the reason each one lines up
+          and everything you need to apply.
+        </p>
+        <div class="hero-buttons">
+          <button class="btn-white" type="button">Import your résumé</button>
+          <button class="liquid-glass btn-glass" type="button">See how it works</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ---- Mobile menu toggle ----
+      (function () {
+        var toggle = document.getElementById("menuToggle");
+        var menu = document.getElementById("mobileMenu");
+        var iconMenu = document.getElementById("iconMenu");
+        var iconClose = document.getElementById("iconClose");
+        var open = false;
+        toggle.addEventListener("click", function () {
+          open = !open;
+          menu.classList.toggle("open", open);
+          iconMenu.style.display = open ? "none" : "block";
+          iconClose.style.display = open ? "block" : "none";
+        });
+      })();
+
+      // ---- Orbiting titles on a slanted ring ----
+      (function () {
+        var TITLES = [
+          "Junior Frontend Engineer", "SOC Analyst", "Associate PM", "Data Analyst",
+          "UX Designer", "DevOps Engineer", "Scrum Master", "GRC Analyst",
+          "QA Engineer", "Product Analyst", "Cloud Engineer", "Business Analyst",
+          "Security Analyst", "Data Engineer",
+        ];
+        var RX = 235, RY = 92;
+        var TILT = (-16 * Math.PI) / 180;
+        var SPEED = 0.22; // rad/s
+        var cos = Math.cos(TILT), sin = Math.sin(TILT);
+
+        var orbit = document.getElementById("orbit");
+        var els = TITLES.map(function (t) {
+          var d = document.createElement("div");
+          d.className = "orbit-title";
+          d.textContent = t;
+          orbit.appendChild(d);
+          return d;
+        });
+
+        var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        var N = TITLES.length, t = 0, last = performance.now();
+
+        function frame(now) {
+          var dt = (now - last) / 1000;
+          last = now;
+          if (!reduce) t += dt * SPEED;
+          for (var i = 0; i < N; i++) {
+            var a = (i / N) * Math.PI * 2 + t;
+            var lx = Math.cos(a) * RX, ly = Math.sin(a) * RY;
+            var x = lx * cos - ly * sin;
+            var y = lx * sin + ly * cos;
+            var k = (Math.sin(a) + 1) / 2; // 0 back, 1 front
+            var scale = 0.7 + 0.3 * k;
+            var el = els[i];
+            el.style.transform =
+              "translate(-50%,-50%) translate(" + x + "px," + y + "px) scale(" + scale + ")";
+            el.style.opacity = String(0.16 + 0.84 * k);
+            el.style.zIndex = String(Math.round(k * 100));
+            el.style.filter = k < 0.5 ? "blur(" + (0.5 - k) * 2.4 + "px)" : "none";
+          }
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      })();
+    </script>
+  </body>
+</html>
