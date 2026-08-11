@@ -184,32 +184,17 @@ function rowToJob(r: {
   };
 }
 
-/**
- * Return cached jobs, refreshing from sources if the cache is empty or stale.
- * `force` bypasses the freshness check.
- */
-export async function getJobs(force = false): Promise<Job[]> {
-  const newest = await prisma.cachedJob.findFirst({
-    orderBy: { fetchedAt: "desc" },
-    select: { fetchedAt: true },
-  });
-  const fresh =
-    newest && Date.now() - newest.fetchedAt.getTime() < CACHE_TTL_MS;
+// Single in-flight refresh shared across concurrent requests, so a burst of
+// visitors never triggers duplicate ingests against the job boards.
+let refreshInFlight: Promise<Job[]> | null = null;
 
-  if (!force && fresh) {
-    const rows = await prisma.cachedJob.findMany();
-    if (rows.length) return rows.map(rowToJob);
-  }
-
+async function doRefresh(): Promise<Job[]> {
   const { jobs, perSource } = await ingestFromSources();
-
-  // If sources returned nothing (e.g. offline), fall back to whatever is cached.
+  // Sources unreachable (offline / rate-limited): keep whatever is cached.
   if (!jobs.length) {
     const rows = await prisma.cachedJob.findMany();
-    if (rows.length) return rows.map(rowToJob);
-    return [];
+    return rows.length ? rows.map(rowToJob) : [];
   }
-
   await saveJobs(jobs);
   await prisma.refreshLog
     .create({
@@ -221,6 +206,47 @@ export async function getJobs(force = false): Promise<Job[]> {
       },
     })
     .catch(() => undefined);
-
   return jobs;
+}
+
+/** De-duped refresh: concurrent callers await the same ingest. */
+function refreshOnce(): Promise<Job[]> {
+  if (!refreshInFlight) {
+    refreshInFlight = doRefresh().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+/**
+ * Return cached jobs with stale-while-revalidate semantics so the hub loads
+ * instantly:
+ *   - fresh cache  → serve it;
+ *   - stale cache  → serve it now, refresh in the background;
+ *   - no cache     → block on the first ingest;
+ *   - force        → block and return a fresh ingest.
+ */
+export async function getJobs(force = false): Promise<Job[]> {
+  if (force) return refreshOnce();
+
+  const rows = await prisma.cachedJob.findMany();
+  const cached = rows.map(rowToJob);
+  const newest = rows.reduce(
+    (max, r) => Math.max(max, r.fetchedAt.getTime()),
+    0
+  );
+  const fresh = newest > 0 && Date.now() - newest < CACHE_TTL_MS;
+
+  if (cached.length && fresh) return cached;
+
+  if (cached.length) {
+    // Serve stale immediately; warm the cache behind the response. (Railway is
+    // a long-running server, so this background promise runs to completion.)
+    void refreshOnce().catch(() => undefined);
+    return cached;
+  }
+
+  // Cold cache: the first request must wait for the ingest.
+  return refreshOnce();
 }

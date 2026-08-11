@@ -17,19 +17,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        {/* Geist for the landing hero (the Beacon app UI keeps Inter). */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap"
-        />
-      </head>
+      {/* The app UI uses self-hosted Inter (above); the static hero at "/"
+          loads Geist itself. No external font fetch on app pages. */}
       <body className="font-sans">{children}</body>
     </html>
   );

@@ -469,6 +469,17 @@
         });
       })();
 
+      // ---- Every nav link / CTA enters the Beacon app at /app ----
+      (function () {
+        var btns = document.querySelectorAll(".hero button");
+        for (var i = 0; i < btns.length; i++) {
+          if (btns[i].id === "menuToggle") continue;
+          btns[i].addEventListener("click", function () {
+            window.location.href = "/app";
+          });
+        }
+      })();
+
       // ---- Orbiting titles on a slanted ring ----
       (function () {
         var TITLES = [

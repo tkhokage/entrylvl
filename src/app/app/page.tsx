@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { RankedJob, ResumeProfile, WorkType } from "@/lib/types";
-import { LiquidGlassHero } from "@/components/hero/LiquidGlassHero";
 import { ImportPanel } from "@/components/ImportPanel";
 import { ReadingState } from "@/components/ReadingState";
 import { ProfileSummary } from "@/components/ProfileSummary";
@@ -11,14 +10,14 @@ import { RoleCard } from "@/components/RoleCard";
 import { RoleSheet } from "@/components/RoleSheet";
 import { useTracker } from "@/lib/useTracker";
 
-type View = "landing" | "import" | "reading" | "hub";
+type View = "import" | "reading" | "hub";
 type WorkFilter = "All" | WorkType;
 type SortMode = "fit" | "salary";
 
 const PROFILE_KEY = "beacon.profile";
 
-export default function Home() {
-  const [view, setView] = useState<View>("landing");
+export default function BeaconApp() {
+  const [view, setView] = useState<View>("import");
   const [profile, setProfile] = useState<ResumeProfile | null>(null);
   const [jobs, setJobs] = useState<RankedJob[]>([]);
   const [parsing, setParsing] = useState(false);
@@ -131,15 +130,8 @@ export default function Home() {
 
   function reset() {
     sessionStorage.removeItem(PROFILE_KEY);
-    setProfile(null);
-    setJobs([]);
-    setSelected(null);
-    setError(null);
-    setNote(null);
-    setShowSaved(false);
-    setQuery("");
-    setSearchResults(null);
-    setView("landing");
+    // Back to the static hero landing at "/".
+    window.location.href = "/";
   }
 
   const searchActive = searchResults !== null && query.length > 0;
@@ -165,23 +157,19 @@ export default function Home() {
 
   return (
     <main className="min-h-screen">
-      {view !== "landing" && (
-        <header className="relative z-20 mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
-          <button onClick={reset} className="flex items-center gap-2 font-display text-lg font-semibold tracking-tight text-charcoal">
-            <span className="grid h-7 w-7 place-items-center rounded-full bg-amber/20 text-[15px]">🔦</span>
-            Beacon
+      <header className="relative z-20 mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
+        <a href="/" className="flex items-center gap-2 font-display text-lg font-semibold tracking-tight text-charcoal">
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-amber/20 text-[15px]">🔦</span>
+          Beacon
+        </a>
+        {view === "hub" ? (
+          <button onClick={() => setShowSaved((s) => !s)} className={`btn-ghost text-[14px] ${showSaved ? "border-amber text-amber-deep" : ""}`}>
+            {showSaved ? "← All roles" : `Saved (${tracker.saved.length})`}
           </button>
-          {view === "hub" ? (
-            <button onClick={() => setShowSaved((s) => !s)} className={`btn-ghost text-[14px] ${showSaved ? "border-amber text-amber-deep" : ""}`}>
-              {showSaved ? "← All roles" : `Saved (${tracker.saved.length})`}
-            </button>
-          ) : (
-            <span className="text-[13px] text-taupe">Accounts coming soon</span>
-          )}
-        </header>
-      )}
-
-      {view === "landing" && <LiquidGlassHero onStart={() => setView("import")} />}
+        ) : (
+          <span className="text-[13px] text-taupe">Accounts coming soon</span>
+        )}
+      </header>
 
       {view === "import" && (
         <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
@@ -190,7 +178,7 @@ export default function Home() {
             onText={(text) => runImport({ text })}
             busy={parsing}
             error={error}
-            onBack={() => { setError(null); setView("landing"); }}
+            onBack={() => { window.location.href = "/"; }}
           />
         </section>
       )}
